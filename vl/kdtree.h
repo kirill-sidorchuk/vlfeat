@@ -108,18 +108,12 @@ typedef struct _VlKDForest
 
   /* query */
   vl_size searchMaxNumComparisons ;
-  vl_size numSearchers;
-  struct _VlKDForestSearcher * headSearcher ;  /* head of the double linked list with searchers */
 
 } VlKDForest ;
 
 /** @brief KDForest searcher object */
 struct _VlKDForestSearcher
 {
-  /* maintain a linked list of searchers for later disposal*/
-  struct _VlKDForestSearcher * next;
-  struct _VlKDForestSearcher * previous;
-
   vl_uindex * searchIdBook ;
   VlKDForestSearchState * searchHeapArray ;
   VlKDForest * forest;
@@ -179,7 +173,6 @@ VL_EXPORT vl_size vl_kdforest_get_max_num_comparisons (VlKDForest * self) ;
 VL_EXPORT void vl_kdforest_set_thresholding_method (VlKDForest * self, VlKDTreeThresholdingMethod method) ;
 VL_EXPORT VlKDTreeThresholdingMethod vl_kdforest_get_thresholding_method (VlKDForest const * self) ;
 VL_EXPORT VlKDForest * vl_kdforest_searcher_get_forest (VlKDForestSearcher const * self) ;
-VL_EXPORT VlKDForestSearcher * vl_kdforest_get_searcher (VlKDForest const * self, vl_uindex pos) ;
 /** @} */
 
 

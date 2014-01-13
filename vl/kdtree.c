@@ -346,8 +346,6 @@ vl_kdforest_new (vl_type dataType,
   self -> splitHeapNumNodes = 0 ;
   self -> distance = distance;
   self -> maxNumNodes = 0 ;
-  self -> numSearchers = 0 ;
-  self -> headSearcher = 0 ;
 
   switch (self->dataType) {
     case VL_TYPE_FLOAT:
@@ -384,25 +382,6 @@ VlKDForestSearcher *
 vl_kdforest_new_searcher (VlKDForest * kdforest)
 {
   VlKDForestSearcher * self = vl_calloc(sizeof(VlKDForestSearcher), 1);
-  if(kdforest->numSearchers == 0) {
-    kdforest->headSearcher = self;
-    self->previous = NULL;
-    self->next = NULL;
-  } else {
-    VlKDForestSearcher * lastSearcher = kdforest->headSearcher;
-    while (1) {
-      if(lastSearcher->next) {
-        lastSearcher = lastSearcher->next;
-      } else {
-        lastSearcher->next = self;
-        self->previous = lastSearcher;
-        self->next = NULL;
-        break;
-      }
-    }
-  }
-
-  kdforest->numSearchers++;
 
   self->forest = kdforest;
   self->searchHeapArray = vl_malloc (sizeof(VlKDForestSearchState) * kdforest->maxNumNodes) ;
@@ -418,33 +397,9 @@ vl_kdforest_new_searcher (VlKDForest * kdforest)
 void
 vl_kdforestsearcher_delete (VlKDForestSearcher * self)
 {
-  if (self->previous && self->next) {
-    self->previous->next = self->next;
-    self->next->previous = self->previous;
-  } else if (self->previous && !self->next) {
-    self->previous->next = NULL;
-  } else if (!self->previous && self->next) {
-    self->next->previous = NULL;
-    self->forest->headSearcher = self->next;
-  } else {
-    self->forest->headSearcher = NULL;
-  }
-  self->forest->numSearchers -- ;
   vl_free(self->searchHeapArray) ;
   vl_free(self->searchIdBook) ;
   vl_free(self) ;
-}
-
-VlKDForestSearcher *
-vl_kdforest_get_searcher (VlKDForest const * self, vl_uindex pos)
-{
-  VlKDForestSearcher * lastSearcher = self->headSearcher ;
-  vl_uindex i ;
-
-  for(i = 0; (i < pos) & (lastSearcher != NULL) ; ++i) {
-    lastSearcher = lastSearcher->next ;
-  }
-  return lastSearcher ;
 }
 
 /** ------------------------------------------------------------------
@@ -458,10 +413,6 @@ vl_kdforest_delete (VlKDForest * self)
 {
   vl_uindex ti ;
   VlKDForestSearcher * searcher ;
-
-  while ((searcher = vl_kdforest_get_searcher(self, 0))) {
-    vl_kdforestsearcher_delete(searcher) ;
-  }
 
   if (self->trees) {
     for (ti = 0 ; ti < self->numTrees ; ++ ti) {
@@ -715,36 +666,6 @@ vl_kdforest_query_recursively (VlKDForestSearcher * searcher,
                                         numAddedNeighbors,
                                         dist,
                                         query) ;
-}
-
-/** ------------------------------------------------------------------
- ** @brief Query the forest
- ** @param selft object.
- ** @param neighbors list of nearest neighbors found (output).
- ** @param numNeighbors number of nearest neighbors to find.
- ** @param query query point.
- ** @return number of tree leaves visited.
- **
- ** A neighbor is represented by an instance of the structure
- ** ::VlKDForestNeighbor. Each entry contains the index of the
- ** neighbor (this is an index into the KDTree data) and its distance
- ** to the query point. Neighbors are sorted by increasing distance.
- **/
-
-vl_size
-vl_kdforest_query (VlKDForest * self,
-                   VlKDForestNeighbor * neighbors,
-                   vl_size numNeighbors,
-                   void const * query)
-{
-  VlKDForestSearcher * searcher = vl_kdforest_get_searcher(self, 0) ;
-  if (searcher == NULL) {
-    searcher = vl_kdforest_new_searcher(self) ;
-  }
-  return vl_kdforestsearcher_query(searcher,
-                                   neighbors,
-                                   numNeighbors,
-                                   query) ;
 }
 
 /** ------------------------------------------------------------------
